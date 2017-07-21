@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+    http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+    http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-file="http://www.springframework.org/schema/integration/file"
+	xmlns:task="http://www.springframework.org/schema/task">
+
+  <!-- Get file from folder named "input" under this project's root directory -->
+	<int-file:inbound-channel-adapter directory="C:/my_test/input" id="newFileChannel" >
+		<int:poller id="poller" fixed-rate="100" />
+	</int-file:inbound-channel-adapter>
+
+<!--  
+  <int:service-activator input-channel="newFileChannel" output-channel="handledFileChannel">
+    <bean class="com.eric.fileprocessor.validator.DuplicateChecker" />
+  </int:service-activator>
+  -->
+  
+  <int:filter id="headerTrailerFilter" input-channel="newFileChannel" output-channel="validHeaderTrailerChannel">
+    <bean class="com.eric.fileprocessor.validation.filter.HeaderTrailerFilter"/>
+  </int:filter>
+  
+  <int:filter id="duplicateFilter" input-channel="validHeaderTrailerChannel" output-channel="validFileChannel">
+    <bean class="com.eric.fileprocessor.validation.filter.DuplicateFilter"/>
+  </int:filter>
+  
+  <int-file:file-to-string-transformer input-channel="validFileChannel" 
+    output-channel="transformedFileChannel"
+    delete-files="true" charset="UTF-8"/>
+
+	<int:channel id="transformedFileChannel">
+		<int:queue />
+	</int:channel>
+
+</beans>
